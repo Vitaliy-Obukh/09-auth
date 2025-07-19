@@ -3,7 +3,6 @@ import css from "./ProfilePage.module.css";
 import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-
 export const metadata: Metadata = {
     title: "User Profile",
     description: "View and manage your personal information, notes, and settings in your profile.",
@@ -21,10 +20,8 @@ export const metadata: Metadata = {
         ],
     },
 };
-
 const Profile = async () => {
   const user = await getServerMe();
-
     return (
         <main className={css.mainContent}>
   <div className={css.profileCard}>
