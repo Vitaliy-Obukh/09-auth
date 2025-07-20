@@ -30,6 +30,11 @@ export async function PATCH(request: Request) {
     });
 
     if (data) return NextResponse.json(data);
+
+    return NextResponse.json(
+      { error: "Failed to update user" },
+      { status: 500 }
+    );
   } catch (error) {
     console.log(error);
     return NextResponse.json(
@@ -37,4 +42,4 @@ export async function PATCH(request: Request) {
       { status: 500 }
     );
   }
-};
+}

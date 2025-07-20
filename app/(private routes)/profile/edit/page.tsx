@@ -1,74 +1,96 @@
 "use client";
 
-import css from "./EditeProfilePage.module.css";
-import { updateMe } from "@/lib/api/clientApi";
+import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import Image from "next/image";
-import { useAuthStore } from "@/lib/store/authStore";
-import { UpdateUserRequest } from "@/types/user";
 
-const EditProfile = () => {
+import { checkSession, getMe, updateMe } from "@/lib/api/clientApi";
+import { useAuthStore } from "@/lib/store/authStore";
+
+import css from "./EditProfileForm.module.css";
+
+export default function EditProfilePage() {
   const router = useRouter();
-  const { user, setUser } = useAuthStore();
-  const [error, setError] = useState<boolean>(false);
-  const handleChange = async (formData: FormData) => {
-    try {
-      const username = Object.fromEntries(formData) as UpdateUserRequest;
-      const updateUser = await updateMe(username);
-      if (updateUser) {
-        setUser(updateUser);
-        router.push("/profile");
+  const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
+  const clearIsAuthenticated = useAuthStore(
+    (state) => state.clearIsAuthenticated
+  );
+
+  const [newUsername, setNewUsername] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setNewUsername(user.username || "");
+      return;
+    }
+
+    const fetchUser = async () => {
+      try {
+        await checkSession();
+        const fetchedUser = await getMe();
+        if (fetchedUser) {
+          setUser(fetchedUser);
+          setNewUsername(fetchedUser.username || "");
+        }
+      } catch {
+        clearIsAuthenticated();
       }
+    };
+
+    fetchUser();
+  }, [user, setUser, clearIsAuthenticated]);
+
+  const handleUsernameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setNewUsername(e.target.value);
+  };
+
+  const handleSaveProfile = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      await updateMe({ username: newUsername });
+      if (user) {
+        setUser({ ...user, username: newUsername });
+      }
+      router.push("/profile");
     } catch (error) {
-      console.log(error);
-      setError(true);
+      console.error(error);
     }
   };
+
   const handleCancel = () => {
     router.back();
   };
+
+  if (!user) return null;
+
   return (
     <main className={css.mainContent}>
       <div className={css.profileCard}>
         <h1 className={css.formTitle}>Edit Profile</h1>
 
-        {user && (
-          <Image
-            src={user?.avatar}
-            alt="User Avatar"
-            width={120}
-            height={120}
-            className={css.avatar}
-          />
-        )}
+        <Image
+          src={user.avatar}
+          alt="User Avatar"
+          width={120}
+          height={120}
+          className={css.avatar}
+        />
 
-        <form
-          className={css.profileInfo}
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            await handleChange(formData);
-          }}
-        >
+        <form onSubmit={handleSaveProfile} className={css.profileInfo}>
           <div className={css.usernameWrapper}>
             <label htmlFor="username">Username:</label>
             <input
               id="username"
-              name="username"
               type="text"
-              defaultValue={user?.username}
+              value={newUsername}
+              onChange={handleUsernameChange}
               className={css.input}
             />
           </div>
 
-          <p>Email: {user?.email}</p>
-
-          {error && (
-            <p className={css.error}>
-              Failed to update profile data. Please try again later.
-            </p>
-          )}
+          <p>Email: {user.email}</p>
 
           <div className={css.actions}>
             <button type="submit" className={css.saveButton}>
@@ -76,8 +98,8 @@ const EditProfile = () => {
             </button>
             <button
               type="button"
-              className={css.cancelButton}
               onClick={handleCancel}
+              className={css.cancelButton}
             >
               Cancel
             </button>
@@ -86,6 +108,4 @@ const EditProfile = () => {
       </div>
     </main>
   );
-};
-
-export default EditProfile;
+}

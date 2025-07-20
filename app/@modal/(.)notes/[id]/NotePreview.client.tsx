@@ -1,28 +1,60 @@
-'use client';
+"use client";
 
-import { fetchNoteById } from '@/lib/api/clientApi';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useRouter } from 'next/navigation';
-import Modal from '@/components/Modal/Modal';
-import NotePreview from '@/components/NotePreview/NotePreview';
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-export default function NoteDetailsClient() {
-    const router = useRouter();
-    const { id } = useParams<{ id: string }>();
+import Modal from "@/components/Modal/Modal";
+import { fetchNoteById } from "@/lib/api/clientApi";
+import css from "./NotePreview.module.css";
 
-    const {data: note, isLoading, error} = useQuery({
-        queryKey: ['notes', id],
-        queryFn: () => fetchNoteById(id),
-        refetchOnMount: false,
-    });
+type NoteDetailsClientProps = { id: string };
 
-    if (isLoading) return <p>Loading, please wait...</p>;
+export default function NoteDetailsClient({ id }: NoteDetailsClientProps) {
+  const router = useRouter();
 
-    if (error || !note) return <p>Something went wrong.</p>;
+  const {
+    data: note,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["note", id],
+    queryFn: () => fetchNoteById(id),
+    refetchOnMount: false,
+  });
 
-    return (
-    <Modal onClose={() => router.back()}>
-        <NotePreview note={note} />
+  const handleClose = useCallback(() => {
+    router.back();
+  }, [router]);
+
+  if (isLoading) return <p>Loading, please wait...</p>;
+  if (isError || !note) return <p>Something went wrong.</p>;
+
+  return (
+    <Modal onClose={handleClose}>
+      <div className={css.container}>
+        <div className={css.item}>
+          <div className={css.header}>
+            <h2>{note?.title}</h2>
+          </div>
+          <p className={css.content}>{note.content}</p>
+          <div className={css.btnTimeBox}>
+            <button onClick={handleClose} className={css.backBtn}>
+              go Back
+            </button>
+            <p className={css.date}>
+              {note.updatedAt === note.createdAt
+                ? `Created at: ${new Date(note.createdAt).toLocaleString(
+                    "uk-UA"
+                  )}`
+                : `Updated at: ${new Date(note.updatedAt).toLocaleString(
+                    "uk-UA"
+                  )}`}
+            </p>{" "}
+          </div>
+        </div>
+      </div>
     </Modal>
-    )
+  );
 }
+
